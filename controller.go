@@ -8,13 +8,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func RunUntilFailure(handlerFunction controller.HandlerFunc,
+func RunUntilFailure(
+	handlerFunction controller.HandlerFunc,
 	listerWatcher cache.ListerWatcher,
-	logger log.Logger) {
+	logger log.Logger,
+) {
 	retriever := controller.MustRetrieverFromListerWatcher(listerWatcher)
 
 	config := &controller.Config{
-		Name:      "example-controller",
+		Name:      "min-versions-controller",
 		Handler:   controller.HandlerFunc(handlerFunction),
 		Retriever: retriever,
 		Logger:    logger,

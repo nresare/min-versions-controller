@@ -27,13 +27,40 @@ func makeKubernetesClient() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(k8scfg)
 }
 
-func makeObjectSink(logger log.Logger) controller.HandlerFunc {
+func makeObjectSink(logger log.Logger, client *kubernetes.Clientset) controller.HandlerFunc {
 	return func(context context.Context, obj runtime.Object) error {
 		node := obj.(*corev1.Node)
 		info := node.Status.NodeInfo
-		logger.Infof("Node event: containerd: %s kubelet: %s", info.ContainerRuntimeVersion, info.KubeletVersion)
+		newLabels, err := buildLabels(info.ContainerRuntimeVersion, info.KubeletVersion)
+		if err != nil {
+			return err
+		}
+		update := needsUpdate(node, newLabels)
+		if update {
+			for key, value := range newLabels {
+				node.Labels[key] = value
+			}
+			logger.Infof("Node %s needs an update", node.Name)
+			client.CoreV1().Nodes().Update(context, node, metav1.UpdateOptions{})
+
+		} else {
+			logger.Infof("Node %s does not need an update", node.Name)
+		}
 		return nil
 	}
+}
+
+func needsUpdate(node *corev1.Node, newLabels map[string]string) bool {
+	for key, value := range newLabels {
+		current, ok := node.Labels[key]
+		if !ok {
+			return true
+		}
+		if current != value {
+			return true
+		}
+	}
+	return false
 }
 
 // This might look a bit magical, essentially this creates a struct of functions that specify
@@ -57,5 +84,5 @@ func main() {
 		panic(fmt.Errorf("failed to make client: %w", err))
 	}
 
-	RunUntilFailure(makeObjectSink(logger), makeNodesListWatch(client), logger)
+	RunUntilFailure(makeObjectSink(logger, client), makeNodesListWatch(client), logger)
 }
