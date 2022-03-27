@@ -86,13 +86,13 @@ func Test_buildTags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := buildLabels(tt.args.containerdVersion, tt.args.kubeletVersion)
+			got, err := buildNodeLabels(tt.args.containerdVersion, tt.args.kubeletVersion)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("buildLabels() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("buildNodeLabels() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("buildLabels() got = %v, want %v", got, tt.want)
+				t.Errorf("buildNodeLabels() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
