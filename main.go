@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -19,15 +20,18 @@ import (
 )
 
 func makeKubernetesClient() (*kubernetes.Clientset, error) {
-	kubehome := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	k8scfg, err := clientcmd.BuildConfigFromFlags("", kubehome)
+	kubernetesConfig, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, err
+		kubehome := filepath.Join(homedir.HomeDir(), ".kube", "config")
+		kubernetesConfig, err = clientcmd.BuildConfigFromFlags("", kubehome)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return kubernetes.NewForConfig(k8scfg)
+	return kubernetes.NewForConfig(kubernetesConfig)
 }
 
-func makeObjectSink(logger log.Logger, client *kubernetes.Clientset) controller.HandlerFunc {
+func makeHandler(logger log.Logger, client *kubernetes.Clientset) controller.HandlerFunc {
 	return func(context context.Context, obj runtime.Object) error {
 		node := obj.(*corev1.Node)
 		info := node.Status.NodeInfo
@@ -40,9 +44,11 @@ func makeObjectSink(logger log.Logger, client *kubernetes.Clientset) controller.
 			for key, value := range newLabels {
 				node.Labels[key] = value
 			}
-			logger.Infof("Node %s needs an update", node.Name)
-			client.CoreV1().Nodes().Update(context, node, metav1.UpdateOptions{})
-
+			logger.Infof("Node %s is not the desired state. Updating", node.Name)
+			_, err = client.CoreV1().Nodes().Update(context, node, metav1.UpdateOptions{})
+			if err != nil {
+				return err
+			}
 		} else {
 			logger.Infof("Node %s does not need an update", node.Name)
 		}
@@ -84,5 +90,5 @@ func main() {
 		panic(fmt.Errorf("failed to make client: %w", err))
 	}
 
-	RunUntilFailure(makeObjectSink(logger, client), makeNodesListWatch(client), logger)
+	RunUntilFailure(makeHandler(logger, client), makeNodesListWatch(client), logger)
 }
