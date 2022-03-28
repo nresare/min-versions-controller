@@ -2,7 +2,7 @@
 
 set -x -e
 
-# Shamelessly stolen from
+# The starting point for this was the instruction at
 # https://www.erianna.com/ecdsa-certificate-authorities-and-certificates-with-openssl/
 
 WEBHOOK_CN=podhook.min-versions.svc
@@ -10,11 +10,11 @@ WEBHOOK_NS=min-versions
 CA_CN=X
 
 
-#openssl ecparam -genkey -name prime256v1 -out ca.key
+openssl ecparam -genkey -name prime256v1 -out ca.key
 
-#openssl req -x509 -new -key ca.key -nodes -days 3650 -subj "/CN=${CA_CN}" -out ca.crt
+openssl req -x509 -new -key ca.key -nodes -days 3650 -subj "/CN=${CA_CN}" -out ca.crt
 
-#openssl ecparam -genkey -name prime256v1 -out server.key
+openssl ecparam -genkey -name prime256v1 -out server.key
 
 openssl req -new -key server.key -nodes -subj "/CN=${WEBHOOK_CN}" \
   -out server.csr
