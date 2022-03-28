@@ -1,6 +1,6 @@
 # min-versions controller
 
-http://github.com/nresare/min-versions
+http://github.com/nresare/min-versions-controller
 
 This project implements a mechanism where labels on a Pod can be used to enforce
 certain minimum versions of the kubelet and containerd software on the Nodes that
@@ -47,8 +47,8 @@ $ kubectl create namespace min-versions
 $ cd ..
 $ git clone https://github.com/nresare/min-versions-controller
 $ cd min-versions-controller
-$ docker build . --tag localhost:5000/min-versions-controller:v0.1.1
-$ docker push localhost:5000/min-versions-controller:v0.1.1
+$ docker build . --tag localhost:5000/min-versions-controller:v0.1.2
+$ docker push localhost:5000/min-versions-controller:v0.1.2
 $ cd cert && ./gencert.sh
 $ base64 -w0 ca.crt && echo  # on macOS, skip the -w0 option
 $ # copy the base64 encoded ca-cert to the clipboard buffer
