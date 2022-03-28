@@ -47,8 +47,8 @@ $ kubectl create namespace min-versions
 $ cd ..
 $ git clone https://github.com/nresare/min-versions-controller
 $ cd min-versions-controller
-$ docker build . --tag localhost:5000/min-versions-controller:v0.1.0
-$ docker push localhost:5000/min-versions-controller:v0.1.0
+$ docker build . --tag localhost:5000/min-versions-controller:v0.1.1
+$ docker push localhost:5000/min-versions-controller:v0.1.1
 $ cd cert && ./gencert.sh
 $ base64 -w0 ca.crt && echo  # on macOS, skip the -w0 option
 $ # copy the base64 encoded ca-cert to the clipboard buffer
@@ -60,12 +60,10 @@ $ kubectl logs -n min-versions -l app.kubernetes.io/name=min-versions-controller
 ```
 
 Things to do to verify that everything works as expected:
-* `kubectl apply -f test-pod.yaml` will bring up a Pod that can only be scheduled on `mw-worker2
-should start a Pod in the default namespace that can only be scheduled on mw-worker2
-
-## Implementation details
-
-
+* Verify with `kubectl get nodes --show-labels` that the Node objects are correctly labelled
+* `kubectl apply -f test-pod.yaml` will bring up a Pod that can only be scheduled on `mw-worker`
+* Once the `default/dbg` pod is deployed, inspect the `spec:affinity:nodeAffinity` block with `kubectl get pod dbg -o yaml`
+* A quick way of seeing where a pod is deployed `kubectl get pods -o wide`
 
 ## Known issues
 

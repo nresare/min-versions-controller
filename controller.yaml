@@ -51,7 +51,7 @@ spec:
       serviceAccountName: controller
       containers:
         - name: controller
-          image: localhost:5000/min-versions-controller:v0.1.0
+          image: localhost:5000/min-versions-controller:v0.1.1
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook-certs
