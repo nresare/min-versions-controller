@@ -8,7 +8,6 @@ import (
 	kwlogrus "github.com/slok/kubewebhook/v2/pkg/log/logrus"
 	kwhmodel "github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 )
@@ -19,28 +18,30 @@ const (
 	certKeyFilePath = "/etc/webhook-certs/server.key"
 )
 
-func makeMutator(logger *logrus.Entry) kwhmutating.MutatorFunc {
-	return func(ctx context.Context, ar *kwhmodel.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
-		pod, ok := obj.(*corev1.Pod)
-		if !ok {
-			logger.Warningf("received object is not a Pod")
-			return &kwhmutating.MutatorResult{}, nil
-		}
-		logger.Infof("In webhook: Not modifying Pod '%s'", pod.Name)
+// SimpleMutator is a simplification of the MutatorFunc api. It receives
+// an object and either returns nil which indicates that the object should
+// not be changed, or a changed object.
+type SimpleMutator func(obj metav1.Object) (metav1.Object, error)
 
-		return &kwhmutating.MutatorResult{}, nil
-	}
-}
-
-func RunWebServer(logger *logrus.Entry, mutatorFunction kwhmutating.MutatorFunc) error {
+func RunWehbookFramework(logger *logrus.Entry, simpleMutator SimpleMutator) error {
 	logger.Infof("Starting webserver, listening on port %d", listenPort)
 	wrappedLogger := kwlogrus.NewLogrus(logger)
 
-	mutator := kwhmutating.MutatorFunc(mutatorFunction)
+	m := func(
+		ctx context.Context,
+		ar *kwhmodel.AdmissionReview,
+		obj metav1.Object,
+	) (*kwhmutating.MutatorResult, error) {
+		obj, err := simpleMutator(obj)
+		if err != nil {
+			return nil, err
+		}
+		return &kwhmutating.MutatorResult{MutatedObject: obj}, nil
+	}
 
 	webhook, err := kwhmutating.NewWebhook(kwhmutating.WebhookConfig{
 		ID:      "safeServiceMonitor",
-		Mutator: mutator,
+		Mutator: kwhmutating.MutatorFunc(m),
 		Logger:  wrappedLogger,
 	})
 	if err != nil {

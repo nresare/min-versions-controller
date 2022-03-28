@@ -78,8 +78,8 @@ func Test_buildTags(t *testing.T) {
 			map[string]string{
 				"mwam.com/containerd-major-version": "1",
 				"mwam.com/containerd-minor-version": "5",
-				"mwam.com/kublelet-major-version":   "1",
-				"mwam.com/kublelet-minor-version":   "22",
+				"mwam.com/kubelet-major-version":    "1",
+				"mwam.com/kubelet-minor-version":    "22",
 			},
 			false,
 		},
