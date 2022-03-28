@@ -3,17 +3,26 @@ package main
 import (
 	corev1 "k8s.io/api/core/v1"
 	"reflect"
+	"strconv"
 )
 
+func buildGreaterThanRequirement(key string, value uint64) corev1.NodeSelectorRequirement {
+	return corev1.NodeSelectorRequirement{
+		Key:      key,
+		Operator: corev1.NodeSelectorOpGt,
+		Values:   []string{strconv.FormatUint(value, 10)},
+	}
+}
+
 func buildNodeSelector(minContainerdVersion string, minKubeletVersion string) (*corev1.NodeSelector, error) {
-	nodeSelectorTerm := make([]corev1.NodeSelectorTerm, 0)
+	matchExpressions := make([]corev1.NodeSelectorRequirement, 0)
 	if minContainerdVersion != "" {
 		containerdMajor, containerdMinor, err := getMajorMinor(minContainerdVersion)
 		if err != nil {
 			return nil, err
 		}
-		nodeSelectorTerm = append(nodeSelectorTerm, buildGreaterThanTerm(ContainerdMajorKey, containerdMajor-1))
-		nodeSelectorTerm = append(nodeSelectorTerm, buildGreaterThanTerm(ContainerdMinorKey, containerdMinor-1))
+		matchExpressions = append(matchExpressions, buildGreaterThanRequirement(ContainerdMajorKey, containerdMajor-1))
+		matchExpressions = append(matchExpressions, buildGreaterThanRequirement(ContainerdMinorKey, containerdMinor-1))
 	}
 
 	if minKubeletVersion != "" {
@@ -21,12 +30,12 @@ func buildNodeSelector(minContainerdVersion string, minKubeletVersion string) (*
 		if err != nil {
 			return nil, err
 		}
-		nodeSelectorTerm = append(nodeSelectorTerm, buildGreaterThanTerm(KubeletMajorKey, kubeletMajor-1))
-		nodeSelectorTerm = append(nodeSelectorTerm, buildGreaterThanTerm(KubeletMinorKey, kubeletMinor-1))
+		matchExpressions = append(matchExpressions, buildGreaterThanRequirement(KubeletMajorKey, kubeletMajor-1))
+		matchExpressions = append(matchExpressions, buildGreaterThanRequirement(KubeletMinorKey, kubeletMinor-1))
 
 	}
 	return &corev1.NodeSelector{
-		NodeSelectorTerms: nodeSelectorTerm,
+		NodeSelectorTerms: []corev1.NodeSelectorTerm{{MatchExpressions: matchExpressions}},
 	}, nil
 
 }
