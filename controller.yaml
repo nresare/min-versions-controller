@@ -50,5 +50,58 @@ spec:
     spec:
       serviceAccountName: controller
       containers:
-        - name: operator
-          image: nresare/min-versions-controller:v0.0.1
+        - name: controller
+          image: localhost:5000/min-versions-controller:v0.0.4
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook-certs
+              readOnly: true
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: webhook-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: podhook
+  namespace: min-versions
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: min-versions-controller
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: webhook-configuration
+webhooks:
+  - name: podhook.min-versions.nresare
+    # to bootstrap this, we need to make sure that the webhook coonfig doesn't block us from
+    # creating the pod that will implement the webook.
+    objectSelector:
+      matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: NotIn
+          values: [ min-versions-controller ]
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    clientConfig:
+      service:
+        name: podhook
+        namespace: min-versions
+        path: /
+      # the output of `base64 cert/ca.crt`
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJCakNCcmdJSkFPdGF1azJFSXkvNk1Bb0dDQ3FHU000OUJBTUNNQXd4Q2pBSUJnTlZCQU1NQVZnd0hoY04KTWpJd016STRNRGMxT0RJd1doY05Nekl3TXpJMU1EYzFPREl3V2pBTU1Rb3dDQVlEVlFRRERBRllNRmt3RXdZSApLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFWGN6aVZ0QzdQb0dMcVhJam9GQUt5NS95TU1hM0JNWHIyZVlCCmZvcjZzZ3Q3aEJremEzdjI2N09UWko3WUN0SnVPQUFJeXorT09XR25FdFR5aEErK2hEQUtCZ2dxaGtqT1BRUUQKQWdOSEFEQkVBaUJ3K3V4UTNJYzV5L1pXOTNiR3VCMHlTekFWSHFkRmJubUI0eUVGdXYxNEd3SWdJYXU0R00yVApVV09EQ1g0NWE0bi9HRGEwdFp5KytncG16NlBoZkhteXBxVT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["*"]
+        resources: ["pods"]

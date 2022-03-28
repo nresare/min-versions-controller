@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"os"
 	"path/filepath"
 	"reflect"
 )
@@ -192,12 +193,18 @@ func main() {
 		errorChannel <- RunControllerUntilFailure(makeNodeHandler(logger, client), makeNodesListWatch(client), logger, ctx)
 	}()
 
+	//go func() {
+	//	errorChannel <- RunControllerUntilFailure(makePodHandler(logger, client), makePodsListWatch(client), logger, ctx)
+	//}()
+
 	go func() {
-		errorChannel <- RunControllerUntilFailure(makePodHandler(logger, client), makePodsListWatch(client), logger, ctx)
+		errorChannel <- RunWebServer(logger, makeMutator(logger))
 	}()
 
 	err = <-errorChannel
 	if err != nil {
-		panic(err)
+		_, _ = fmt.Fprintf(os.Stderr, "error running app: %s", err)
+		os.Exit(1)
 	}
+	os.Exit(0)
 }
