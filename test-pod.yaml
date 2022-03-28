@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dbg
+  namespace: default
+  labels:
+    mwam.com/min-kubelet-version: v1.23
+spec:
+  containers:
+    - name: dbg
+      image: nresare/dbg
+      command: ["/bin/sleep"]
+      args: ["3600"]
+
